@@ -1,29 +1,23 @@
+import { IonicPage } from 'ionic-angular';
 import { Component } from '@angular/core';
 import { NavController, AlertController } from 'ionic-angular';
 
 import { LibraryService } from '../../providers/library-service';
-import { Library } from '../../schema/library';
 import { MealService } from '../../providers/meal-service';
 import { Meal } from '../../schema/meal';
 
-import { ObjectID } from 'bson';
+import * as moment from 'moment';
 
-
+@IonicPage()
 @Component({
   selector: 'page-home',
   templateUrl: 'home.html'
 })
 export class HomePage {
 
-  // TODO Make mealTypes accessible to other components (similar to loadLibraries() problem).
-  mealTypes = ['Breakfast', 'AM Snack', 'Lunch', 'PM Snack', 'Supper'];
-  selectedMealType = this.mealTypes[0];
-
-  libraries: Library[];
-
-  selectedLibrary: Library;
-  // TODO Update selectedDate to show local US/Pacific time.
-  selectedDate = new Date().toISOString();
+  selectedLibrary: string;
+  selectedMealType: string;
+  selectedDate = moment().format();
 
   //  TODO Organize mealInventory and tallies into more legible objects.
   mealInventories = [
@@ -46,20 +40,6 @@ export class HomePage {
               private mealService: MealService) {
   }
 
-  ionViewDidLoad() {
-    // TODO Replace these redundant loadLibraries() calls to the server.
-    this.libraryService.loadLibraries().subscribe(data => {
-      this.libraries = data;
-      this.selectedLibrary = this.libraries[0];
-    }, err => {
-      console.log(err);
-    });
-  }
-
-  setCount(mealItem) {
-    // TODO Open number input to set custom count; OR replace buttons with ion-input?
-  }
-
   increaseCount(mealItem) {
     mealItem.count++;
   }
@@ -77,29 +57,47 @@ export class HomePage {
   addMeal() {
     var meal = {
       date: this.selectedDate,
-      library_id: new ObjectID(this.selectedLibrary._id),
+      library: this.selectedLibrary,
       mealType: this.selectedMealType,
-      numReceivedMeals: this.mealInventories.find(x => x.name === 'Received').count,
-      numLeftoverMeals: this.mealInventories.find(x => x.name === 'Leftovers').count,
-      numStaffMeals: this.tallies.find(x => x.name === 'Staff').count,
-      numChildrenMeals: this.tallies.find(x => x.name === 'Children').count,
-      numAdultMeals: this.tallies.find(x => x.name === 'Adult').count,
-      numVolunteerMeals: this.tallies.find(x => x.name === 'Volunteers').count,
-      numWastedMeals: this.tallies.find(x => x.name === 'Non-reimbursable').count,
+      numReceivedMeals: Number(this.mealInventories.find(x => x.name === 'Received').count),
+      numLeftoverMeals: Number(this.mealInventories.find(x => x.name === 'Leftovers').count),
+      numStaffMeals: Number(this.tallies.find(x => x.name === 'Staff').count),
+      numChildrenMeals: Number(this.tallies.find(x => x.name === 'Children').count),
+      numAdultMeals: Number(this.tallies.find(x => x.name === 'Adult').count),
+      numVolunteerMeals: Number(this.tallies.find(x => x.name === 'Volunteers').count),
+      numWastedMeals: Number(this.tallies.find(x => x.name === 'Non-reimbursable').count),
       signature: this.signature
     } as Meal;
 
     this.mealService.add(meal).subscribe(data => {
-        this.showMealAlert();
+        this.showMealSavedAlert();
       }, err => {
-        console.log(err);
+        this.showMealErrorAlert();
     });
   }
 
-  showMealAlert() {
+  showMealSavedAlert() {
     let alert = this.alertCtrl.create({
-      title: 'Meal posted!',
-      subTitle: 'New mongodb document added in "meals" collection.',
+      title: 'Meals Saved',
+      subTitle: 'We\'ve added these meals to the tally. Thanks for helping out!',
+      buttons: ['OK']
+    });
+    alert.present();
+  }
+
+  showMealErrorAlert() {
+    let alert = this.alertCtrl.create({
+      title: 'Error Saving Meals',
+      subTitle: 'There was an error while adding these meals to the tally. Could you try again?',
+      buttons: ['OK']
+    });
+    alert.present();
+  }
+
+  showPageErrorAlert() {
+    let alert = this.alertCtrl.create({
+      title: 'Error',
+      subTitle: 'There was an error loading the home page. Please try refreshing the page again.',
       buttons: ['OK']
     });
     alert.present();
